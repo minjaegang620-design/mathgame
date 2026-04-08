@@ -1,0 +1,275 @@
+```html
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Math Rush</title>
+
+<style>
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: radial-gradient(circle at center, #111, #000);
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.game {
+  width: 360px;
+  padding: 20px;
+  border-radius: 20px;
+  background: #1a1a1a;
+  box-shadow: 0 0 30px rgba(0,255,255,0.2);
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  font-size: 18px;
+}
+
+.timer { color: #00ffcc; }
+.score { color: #ffcc00; }
+
+.question {
+  text-align: center;
+  font-size: 36px;
+  margin: 30px 0;
+  font-weight: bold;
+}
+
+.choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+button {
+  padding: 15px;
+  font-size: 18px;
+  border: none;
+  border-radius: 10px;
+  background: #222;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover { background: #333; }
+
+.correct { background: #00cc66 !important; }
+.wrong { background: #cc0033 !important; }
+
+.bottom {
+  margin-top: 20px;
+  display: flex;
+  justify-content: space-between;
+}
+
+.combo { color: #ff6699; }
+
+.start-screen, .end-screen { text-align: center; }
+.hidden { display: none; }
+
+.big-btn {
+  margin-top: 20px;
+  padding: 15px 30px;
+  font-size: 18px;
+  border-radius: 10px;
+  background: #00ccff;
+  color: black;
+  border: none;
+  cursor: pointer;
+}
+
+input, select {
+  padding:10px;
+  border-radius:8px;
+  border:none;
+  margin-top:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="game">
+
+<!-- 시작 화면 -->
+<div class="start-screen" id="startScreen">
+  <h1>⚡ Math Rush</h1>
+  <p>빠르게 계산해서 점수를 올려라!</p>
+
+  <input id="playerName" placeholder="이름 입력"><br>
+
+  <select id="difficulty">
+    <option value="easy">하</option>
+    <option value="medium">중</option>
+    <option value="hard">상</option>
+  </select>
+
+  <br>
+  <button class="big-btn" onclick="startGame()">시작</button>
+</div>
+
+<!-- 게임 화면 -->
+<div class="play-screen hidden" id="playScreen">
+  <div class="top">
+    <div class="timer">⏱ <span id="time">30</span></div>
+    <div class="score">🏆 <span id="score">0</span></div>
+  </div>
+
+  <div class="question" id="question">1 + 1</div>
+  <div class="choices" id="choices"></div>
+
+  <div class="bottom">
+    <div class="combo">🔥 x<span id="combo">0</span></div>
+    <div id="feedback"></div>
+  </div>
+</div>
+
+<!-- 종료 화면 -->
+<div class="end-screen hidden" id="endScreen">
+  <h2>🎉 게임 종료!</h2>
+  <p>점수: <span id="finalScore"></span></p>
+  <div id="ranking"></div>
+  <button class="big-btn" onclick="location.reload()">다시하기</button>
+</div>
+
+</div>
+
+<script>
+let score = 0;
+let time = 30;
+let combo = 0;
+let correctAnswer;
+let timer;
+let playerName = "";
+let difficulty = "easy";
+
+function startGame() {
+  playerName = document.getElementById('playerName').value || "익명";
+  difficulty = document.getElementById('difficulty').value;
+
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('playScreen').classList.remove('hidden');
+
+  nextQuestion();
+
+  timer = setInterval(() => {
+    time--;
+    document.getElementById('time').textContent = time;
+    if (time <= 0) endGame();
+  }, 1000);
+}
+
+function nextQuestion() {
+  let a, b, ops;
+
+  if (difficulty === "easy") {
+    a = Math.floor(Math.random() * 10);
+    b = Math.floor(Math.random() * 10);
+    ops = ['+'];
+  } else if (difficulty === "medium") {
+    a = Math.floor(Math.random() * 20);
+    b = Math.floor(Math.random() * 20);
+    ops = ['+', '-'];
+  } else {
+    a = Math.floor(Math.random() * 50);
+    b = Math.floor(Math.random() * 20);
+    ops = ['+', '-', '*'];
+  }
+
+  let op = ops[Math.floor(Math.random() * ops.length)];
+
+  if (op === '+') correctAnswer = a + b;
+  if (op === '-') correctAnswer = a - b;
+  if (op === '*') correctAnswer = a * b;
+
+  document.getElementById('question').textContent = `${a} ${op} ${b}`;
+
+  let answers = [correctAnswer];
+  while (answers.length < 4) {
+    let wrong = correctAnswer + Math.floor(Math.random() * 10 - 5);
+    if (!answers.includes(wrong)) answers.push(wrong);
+  }
+
+  answers.sort(() => Math.random() - 0.5);
+
+  let choicesDiv = document.getElementById('choices');
+  choicesDiv.innerHTML = '';
+
+  answers.forEach(ans => {
+    let btn = document.createElement('button');
+    btn.textContent = ans;
+    btn.onclick = () => checkAnswer(btn, ans);
+    choicesDiv.appendChild(btn);
+  });
+}
+
+function checkAnswer(button, answer) {
+  let feedback = document.getElementById('feedback');
+
+  if (answer === correctAnswer) {
+    score += 10 + combo * 2;
+    combo++;
+    button.classList.add('correct');
+    feedback.textContent = '✅';
+  } else {
+    combo = 0;
+    button.classList.add('wrong');
+    feedback.textContent = '❌';
+  }
+
+  document.getElementById('score').textContent = score;
+  document.getElementById('combo').textContent = combo;
+
+  setTimeout(() => {
+    nextQuestion();
+    feedback.textContent = '';
+  }, 300);
+}
+
+function endGame() {
+  clearInterval(timer);
+  saveRanking();
+
+  document.getElementById('playScreen').classList.add('hidden');
+  document.getElementById('endScreen').classList.remove('hidden');
+  document.getElementById('finalScore').textContent = score;
+
+  showRanking();
+}
+
+function saveRanking() {
+  let key = "ranking_" + difficulty;
+  let ranking = JSON.parse(localStorage.getItem(key)) || [];
+
+  ranking.push({ name: playerName, score: score });
+  ranking.sort((a, b) => b.score - a.score);
+  ranking = ranking.slice(0, 5);
+
+  localStorage.setItem(key, JSON.stringify(ranking));
+}
+
+function showRanking() {
+  let key = "ranking_" + difficulty;
+  let ranking = JSON.parse(localStorage.getItem(key)) || [];
+
+  let html = "<h3>🏆 랭킹 (" + difficulty + ")</h3>";
+
+  ranking.forEach((r, i) => {
+    html += `<p>${i + 1}. ${r.name} - ${r.score}</p>`;
+  });
+
+  document.getElementById('ranking').innerHTML = html;
+}
+</script>
+
+</body>
+</html>
+```
